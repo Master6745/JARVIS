@@ -2,16 +2,20 @@ import speech_recognition as sr
 import webbrowser
 import pyttsx3
 import time
-
-
+from gtts import gTTS
+import pygame
+import os
+USE_GTTS = True
 r=sr.Recognizer()
-   
+engine=pyttsx3.init('sapi5')
+engine.setProperty('rate', 220)  
 def speak(text):
-    engine=pyttsx3.init('sapi5')
-    engine.setProperty('rate', 220)
-    print(f"Jarvis: {text}")
-    engine.say(text)
-    engine.runAndWait()
+    if USE_GTTS:
+        speak_gtts(text)
+    else:
+        print(f"Jarvis: {text}")
+        engine.say(text)
+        engine.runAndWait()
     # engine.stop()
 def wish_user():
     speak("INITIALISING JARVIS...What can  I do for you") 
