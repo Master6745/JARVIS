@@ -1,64 +1,169 @@
 import speech_recognition as sr
 import webbrowser
 import pyttsx3
-import time
+import requests
 from gtts import gTTS
 import pygame
 import os
+import uuid
+from openai import OpenAI
+import time
+
+# ----------------------------
+# Configuration
+# ----------------------------
 USE_GTTS = True
-r=sr.Recognizer()
-engine=pyttsx3.init('sapi5')
-engine.setProperty('rate', 220)  
+NEWS_API_KEY = "<Your NewsAPI Key>"
+OPENAI_API_KEY = "<Your OpenAI Key>"
+
+
+engine = pyttsx3.init()
+engine.setProperty("rate", 250)
+
+if USE_GTTS:
+    pygame.mixer.init()  # Initialize pygame once
+
+recognizer = sr.Recognizer()
+
+
+music_library = {
+    "song1": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "song2": "https://www.youtube.com/watch?v=3JZ_D3ELwOQ"
+}
+
+
+client = OpenAI(api_key=OPENAI_API_KEY)
+
+
+
 def speak(text):
+   
+    print(f"Jarvis: {text}")
     if USE_GTTS:
-        speak_gtts(text)
+        filename = f"voice_{uuid.uuid4().hex}.mp3"
+        tts = gTTS(text=text, lang="en")
+        tts.save(filename)
+
+        pygame.mixer.music.load(filename)
+        pygame.mixer.music.play()
+
+        while pygame.mixer.music.get_busy():
+            pygame.time.Clock().tick(10)
+
+        try:
+            os.remove(filename)
+        except:
+            pass
     else:
-        print(f"Jarvis: {text}")
         engine.say(text)
         engine.runAndWait()
-    # engine.stop()
-def wish_user():
-    speak("INITIALISING JARVIS...What can  I do for you") 
-    speak("Hello MASTER")   
 
-def take_command():
+
+def listen(timeout=5, phrase_time_limit=5):
+   
     with sr.Microphone() as source:
-        print("\nListening....")
-        r.pause_threshold=1
-        audio=r.listen(source)
-
-    try:
-        print("Recognizing...")
-        query = r.recognize_google(audio, language='en-in')   # type: ignore
-        print(f"You said: {query}\n")
-        return query.lower()
-    except sr.UnknownValueError:
-        print("Sorry, I could not understand your audio.")
-        return ""
-    
-    except sr.RequestError:
-        print("Could not request results from Google. Check your internet connection.")
-        return ""
-def to_wake():
-    while True:
-        query=take_command()
-        if "jarvis" in query:
-            speak("I am Awaken")
-            return
+        recognizer.adjust_for_ambient_noise(source, duration=1)
+        print("Listening...")
+        try:
+            audio = recognizer.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
+            command = recognizer.recognize_google(audio)
+            print(f"You said: {command}")
+            return command.lower()
+        except sr.WaitTimeoutError:
+            return ""
+        except sr.UnknownValueError:
+            return ""
+        except sr.RequestError:
+            speak("Check your internet connection")
+            return ""
 
 
+def ai_process(command):
+   
+    completion = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a virtual assistant named Jarvis. Keep answers short and concise."},
+            {"role": "user", "content": command}
+        ]
+    )
+    return completion.choices[0].message.content
 
 
-if __name__=="__main__":
-    wish_user()
+def fetch_news():
+    url = f"https://newsapi.org/v2/top-headlines?country=in&apiKey={NEWS_API_KEY}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        articles = data.get("articles", [])[:5]
+        for article in articles:
+            speak(article.get("title", "No title"))
+    else:
+        speak("Unable to fetch news right now.")
 
-    while True:
-        to_wake()
-        speak("listening to your command")
-        command=take_command()
-        if  "exit" in command :
-            speak("Nice talking to You")
-            break
-           
+
+def process_command(command):
+    if not command:
+        return
+
+    if "open google" in command:
+        speak("Opening Google...")
+        time.sleep(0.5)
+        webbrowser.open("https://www.google.com")
+    elif "open facebook" in command:
+        speak("Opening Facebook...")
+        time.sleep(0.5)
+        webbrowser.open("https://www.facebook.com")
+    elif "open youtube" in command:
+        speak("Opening YouTube...")
+        time.sleep(0.5)
+        webbrowser.open("https://www.youtube.com")
+    elif "open linkedin" in command:
+        speak("Opening LinkedIn...")
+        time.sleep(0.5)
+        webbrowser.open("https://www.linkedin.com")
+    elif command.startswith("play"):
+        song_name = command.split("play")[-1].strip()
+        link = music_library.get(song_name)
+        if link:
+            speak(f"Playing {song_name}")
+            webbrowser.open(link)
         else:
-            speak("You said "+command)
+            speak(f"Sorry, I do not have {song_name} in library.")
+    elif "news" in command:
+        speak("Here are the top headlines")
+        fetch_news()
+    elif "exit" in command or "quit" in command or "stop" in command:
+        speak("Goodbye! Have a great day")
+        exit()
+    else:
+        
+        response = ai_process(command)
+        speak(response)
+
+
+if __name__ == "__main__":
+    speak("Initializing Jarvis...")
+
+    while True:
+        
+        word = listen(timeout=10, phrase_time_limit=3)
+        if "jarvis" in word:
+            speak("Hello Master....")
+            speak("I am Jarvis  How may i assist you today...")
+
+            while True:
+                command = listen(timeout=7, phrase_time_limit=5)
+                if not command:
+                    continue  
+
+                command_lower = command.lower()
+
+                if "standby" in command_lower:
+                    speak("Going to standby mode. Say 'Jarvis' to wake me up again.")
+                    break  
+
+                elif "exit" in command_lower or "quit" in command_lower or "stop" in command_lower:
+                    speak("Shutting down. Goodbye!")
+                    exit() 
+                process_command(command)
