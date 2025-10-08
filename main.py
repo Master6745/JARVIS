@@ -1,3 +1,5 @@
+import openai
+
 import speech_recognition as sr
 import webbrowser
 import pyttsx3
@@ -6,7 +8,8 @@ from gtts import gTTS
 import pygame
 import os
 import uuid
-from openai import OpenAI
+from openai import OpenAI, RateLimitError, APIError
+
 import time
 
 #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
@@ -26,8 +29,8 @@ recognizer = sr.Recognizer()
 
 
 music_library = {
-    "song1": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    "song2": "https://www.youtube.com/watch?v=3JZ_D3ELwOQ"
+    "song a": "https://youtu.be/cQM55aOrZCg?si=MSQ08tqQC4k6bnKv",
+    "song b": "https://youtu.be/qxZGhxlmUak?si=GZ5GLeJbUyQFjcO_"
 }
 
 api_key = os.getenv(OPENAI_API_KEY)
@@ -37,7 +40,7 @@ client = OpenAI(api_key=api_key)
 
 def speak(text):
    
-    print(f"Jarvis: {text}")
+    print(f"Nova: {text}")
     if USE_GTTS:
         filename = f"voice_{uuid.uuid4().hex}.mp3"
         tts = gTTS(text=text, lang="en")
@@ -65,7 +68,8 @@ def listen(timeout=5, phrase_time_limit=5):
         print("Listening...")
         try:
             audio = recognizer.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
-            command = recognizer.recognize_google(audio) #ignore
+            command = recognizer.recognize_google(audio)
+            # print("recognising..") 
             print(f"You said: {command}")
             return command.lower()
         except sr.WaitTimeoutError:
@@ -104,52 +108,65 @@ def fetch_news():
 def process_command(command):
     if not command:
         return
-
-    if "open google" in command:
-        speak("Opening Google...")
-        time.sleep(0.5)
-        webbrowser.open("https://www.google.com")
-    elif "open facebook" in command:
-        speak("Opening Facebook...")
-        time.sleep(0.5)
-        webbrowser.open("https://www.facebook.com")
-    elif "open youtube" in command:
-        speak("Opening YouTube...")
-        time.sleep(0.5)
-        webbrowser.open("https://www.youtube.com")
-    elif "open linkedin" in command:
-        speak("Opening LinkedIn...")
-        time.sleep(0.5)
-        webbrowser.open("https://www.linkedin.com")
-    elif command.startswith("play"):
-        song_name = command.split("play")[-1].strip()
-        link = music_library.get(song_name)
-        if link:
-            speak(f"Playing {song_name}")
-            webbrowser.open(link)
+    try:
+        if "open google" in command:
+            speak("Opening Google...")
+            time.sleep(0.5)
+            webbrowser.open("https://www.google.com")
+        elif "open facebook" in command:
+            speak("Opening Facebook...")
+            time.sleep(0.5)
+            webbrowser.open("https://www.facebook.com")
+        elif "open youtube" in command:
+            speak("Opening YouTube...")
+            time.sleep(0.5)
+            webbrowser.open("https://www.youtube.com")
+        elif "open linkedin" in command:
+            speak("Opening LinkedIn...")
+            time.sleep(0.5)
+            webbrowser.open("https://www.linkedin.com")
+        elif command.startswith("play"):
+            song_name = command.split("play")[-1].strip()
+            link = music_library.get(song_name)
+            if link:
+                speak(f"Playing {song_name}")
+                webbrowser.open(link)
+            else:
+                speak(f"Sorry, I do not have {song_name} in library.")
+        elif "news" in command:
+            speak("Here are the top headlines")
+            fetch_news()
+        elif "exit" in command or "quit" in command or "stop" in command:
+            speak("Goodbye! Have a great day")
+            exit()
         else:
-            speak(f"Sorry, I do not have {song_name} in library.")
-    elif "news" in command:
-        speak("Here are the top headlines")
-        fetch_news()
-    elif "exit" in command or "quit" in command or "stop" in command:
-        speak("Goodbye! Have a great day")
-        exit()
-    else:
         
-        response = ai_process(command)
-        speak(response)
+            try:
+                response = ai_process(command)
+                speak(response)
+            except RateLimitError:
+                speak("Sorry, my API quota is exhausted. Try again later.")
+            except APIError as e:
+                speak("There was a problem communicating with the AI service.")
+                print("API Error:", e)
+            except Exception as e:
+                speak("Sorry, I could not process that command.")
+                print("Error in AI response:", e)
+
+    except Exception as e:
+            print("Unexpected error in process_command:", e)
 
 
 if __name__ == "__main__":
-    speak("Initializing Jarvis...")
+    speak("Initializing Nova...")
 
     while True:
         
         word = listen(timeout=10, phrase_time_limit=3)
-        if "jarvis" in word:
+        word_lower = word.lower()
+        if "nova" in word:
             speak("Hello Master....")
-            speak("I am Jarvis  How may i assist you today...")
+            speak("I am Nova  How may i assist you today...")
 
             while True:
                 command = listen(timeout=7, phrase_time_limit=5)
@@ -159,10 +176,11 @@ if __name__ == "__main__":
                 command_lower = command.lower()
 
                 if "standby" in command_lower:
-                    speak("Going to standby mode. Say 'Jarvis' to wake me up again.")
+                    speak("Going to standby mode. Say 'Nova' to wake me up again.")
                     break  
 
                 elif "exit" in command_lower or "quit" in command_lower or "stop" in command_lower:
                     speak("Shutting down. Goodbye!")
                     exit() 
                 process_command(command)
+
