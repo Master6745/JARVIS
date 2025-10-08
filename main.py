@@ -9,19 +9,18 @@ import uuid
 from openai import OpenAI
 import time
 
-# ----------------------------
-# Configuration
-# ----------------------------
+#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
+
 USE_GTTS = True
 NEWS_API_KEY = "<Your NewsAPI Key>"
-OPENAI_API_KEY = "<Your OpenAI Key>"
+OPENAI_API_KEY = "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"
 
 
 engine = pyttsx3.init()
 engine.setProperty("rate", 250)
 
 if USE_GTTS:
-    pygame.mixer.init()  # Initialize pygame once
+    pygame.mixer.init()  
 
 recognizer = sr.Recognizer()
 
@@ -31,8 +30,8 @@ music_library = {
     "song2": "https://www.youtube.com/watch?v=3JZ_D3ELwOQ"
 }
 
-
-client = OpenAI(api_key=OPENAI_API_KEY)
+api_key = os.getenv(OPENAI_API_KEY)
+client = OpenAI(api_key=api_key)
 
 
 
@@ -66,7 +65,7 @@ def listen(timeout=5, phrase_time_limit=5):
         print("Listening...")
         try:
             audio = recognizer.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
-            command = recognizer.recognize_google(audio)
+            command = recognizer.recognize_google(audio) #ignore
             print(f"You said: {command}")
             return command.lower()
         except sr.WaitTimeoutError:
