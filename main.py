@@ -15,7 +15,7 @@ import time
 #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
 
 USE_GTTS = True
-NEWS_API_KEY = "<Your NewsAPI Key>"
+NEWS_API_KEY = "fa98e586a4124a738d69c61fcc422ed5"
 OPENAI_API_KEY = "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"
 
 
