@@ -68,7 +68,7 @@ def listen(timeout=5, phrase_time_limit=5):
         print("Listening...")
         try:
             audio = recognizer.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
-            command = recognizer.recognize_google(audio)
+            command = recognizer.recognize_google(audio) # type: ignore
             # print("recognising..") 
             print(f"You said: {command}")
             return command.lower()
@@ -77,7 +77,7 @@ def listen(timeout=5, phrase_time_limit=5):
         except sr.UnknownValueError:
             return ""
         except sr.RequestError:
-            speak("Check your internet connection")
+            speak("No Internet")
             return ""
 
 
@@ -86,7 +86,7 @@ def ai_process(command):
     completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are a virtual assistant named Jarvis. Keep answers short and concise."},
+            {"role": "system", "content": "You are a virtual assistant named Nova. Keep answers short and concise."},
             {"role": "user", "content": command}
         ]
     )
