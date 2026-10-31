@@ -12,13 +12,11 @@ from openai import OpenAI, RateLimitError, APIError
 
 import time
 
-#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
+
 
 USE_GTTS = True
 NEWS_API_KEY = "fa98e586a4124a738d69c61fcc422ed5"
-OPENAI_API_KEY = "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"
-
-
+OPENAI_API_KEY = "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"
 engine = pyttsx3.init()
 engine.setProperty("rate", 250)
 
@@ -33,9 +31,9 @@ music_library = {
     "song b": "https://youtu.be/qxZGhxlmUak?si=GZ5GLeJbUyQFjcO_"
 }
 
-api_key = os.getenv(OPENAI_API_KEY)
-client = OpenAI(api_key=api_key)
-
+# api_key = os.getenv(OPENAI_API_KEY)
+client = OpenAI(api_key=OPENAI_API_KEY)
+# client=OpenAI()
 
 
 def speak(text):
@@ -162,7 +160,7 @@ if __name__ == "__main__":
 
     while True:
         
-        word = listen(timeout=10, phrase_time_limit=3)
+        word = listen(timeout=5, phrase_time_limit=15)
         word_lower = word.lower()
         if "nova" in word:
             speak("Hello Master....")
